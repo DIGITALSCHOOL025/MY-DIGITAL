@@ -9,18 +9,18 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const PORT = process.env.PORT || 3000;
 
 const shortcode = "08000428854";
-const phoneNumber = "243815911930"; // Pour test
-const mpesaBaseURL = "https://sandbox.vm.co.mz"; // M-Pesa Sandbox
-const consumerKey = "VOTRE_CONSUMER_KEY"; // À remplacer dès que dispo
+const phoneNumber = "243815911930";
+const currency = "USD"; // Devise du paiement
+const mpesaBaseURL = "https://sandbox.vm.co.mz";
+const consumerKey = "VOTRE_CONSUMER_KEY";
 const consumerSecret = "VOTRE_CONSUMER_SECRET";
 
-// Route POST /pay
 app.post("/pay", async (req, res) => {
-  const amount = req.body.amount || "100";
+  const amount = req.body.amount || "1";
   const phone = req.body.phoneNumber || phoneNumber;
 
-  // Pour test simple : simule une réponse
-  res.send(`Paiement de ${amount} CDF initié pour ${phone}`);
+  // Simulation du traitement
+  res.send(`Paiement de ${amount} ${currency} initié pour ${phone}`);
 });
 
 app.listen(PORT, () => {

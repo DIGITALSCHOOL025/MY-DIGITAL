@@ -31,7 +31,7 @@ async function getAccessToken() {
 }
 
 app.get('/pay', async (req, res) => {
-  const montant = req.query.amount || 0.5; // Montant par défaut en USD
+  const montant = req.query.amount || 1; // Montant par défaut en USD
   const numeroClient = '243815911930'; // Ton numéro M-Pesa à préremplir automatiquement
 
   try {

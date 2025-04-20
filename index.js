@@ -12,8 +12,8 @@ const baseURL = 'https://sandbox.momodeveloper.mtn.com';
 const apiUser = 'TON_API_USER';
 const apiKey = 'TA_CLE_API_SANDBOX';
 const subscriptionKey = 'TON_SUBSCRIPTION_KEY';
-const shortcode = 'TON_SHORTCODE';
-const callbackURL = 'https://digitalschool025.systeme.io/page-de-remerciement';
+const shortcode = '08000428854';
+const callbackURL = 'https://digitalschool025.systeme.io/413723d5';
 
 // Fonction d'authentification pour obtenir le token d'accès
 async function getAccessToken() {

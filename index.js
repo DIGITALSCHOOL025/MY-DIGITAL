@@ -1,75 +1,63 @@
-// index.js (Render backend M-Pesa)
-const express = require('express');
-const axios = require('axios');
-const bodyParser = require('body-parser');
+// backend M-Pesa sandbox (Node.js)
+const express = require("express");
+const bodyParser = require("body-parser");
+const axios = require("axios");
 const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
-const PORT = process.env.PORT || 3000;
+// Infos sandbox
+const shortcode = "08000428854"; // shortcode marchand
+const consumerKey = "SANDBOX_CONSUMER_KEY_ICI";
+const consumerSecret = "SANDBOX_CONSUMER_SECRET_ICI";
+const baseURL = "https://sandbox.vm.co.mz"; // base URL sandbox M-Pesa
 
-const baseURL = 'https://sandbox.momodeveloper.mtn.com';
-const apiUser = 'TON_API_USER';
-const apiKey = 'TA_CLE_API_SANDBOX';
-const subscriptionKey = 'TON_SUBSCRIPTION_KEY';
-const shortcode = '08000428854';
-const callbackURL = 'https://digitalschool025.systeme.io/413723d5';
-
-// Fonction d'authentification pour obtenir le token d'accès
+// Obtenir token d'accès
 async function getAccessToken() {
-  const response = await axios.post(
-    `${baseURL}/collection/token/`,
-    {},
-    {
-      headers: {
-        'Ocp-Apim-Subscription-Key': subscriptionKey,
-        'Authorization': 'Basic ' + Buffer.from(apiUser + ':' + apiKey).toString('base64')
-      }
-    }
-  );
+  const credentials = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
+  const config = {
+    headers: {
+      Authorization: `Basic ${credentials}`,
+    },
+  };
+
+  const response = await axios.get(`${baseURL}/ipg/v1/oauth/token`, config);
   return response.data.access_token;
 }
 
-app.get('/pay', async (req, res) => {
-  const montant = req.query.amount || 1; // Montant par défaut en USD
-  const numeroClient = '243815911930'; // Ton numéro M-Pesa à préremplir automatiquement
-
+// Lancer paiement
+app.post("/pay", async (req, res) => {
+  const { amount, phoneNumber } = req.body;
   try {
     const token = await getAccessToken();
-    const referenceId = Math.floor(Math.random() * 1000000000);
 
-    await axios.post(
-      `${baseURL}/collection/v1_0/requesttopay`,
-      {
-        amount: montant,
-        currency: 'USD',
-        externalId: referenceId,
-        payer: {
-          partyIdType: 'MSISDN',
-          partyId: numeroClient
-        },
-        payerMessage: 'Paiement Digital School',
-        payeeNote: 'Merci pour votre achat'
-      },
+    const payload = {
+      input_Amount: amount,
+      input_CustomerMSISDN: phoneNumber,
+      input_ServiceProviderCode: shortcode,
+      input_ThirdPartyReference: "Ref123456", // identifiant unique pour la transaction
+      input_TransactionReference: "Txn123456", // identifiant transaction
+    };
+
+    const response = await axios.post(
+      `${baseURL}/ipg/v1/c2bPayment/singleStage/`,
+      payload,
       {
         headers: {
-          'X-Reference-Id': referenceId,
-          'X-Target-Environment': 'sandbox',
-          'Ocp-Apim-Subscription-Key': subscriptionKey,
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
-    // Redirection après paiement (simulé ici)
-    return res.redirect(callbackURL);
+    res.json({ success: true, message: "Paiement lancé", data: response.data });
   } catch (error) {
-    console.error('Erreur de paiement M-Pesa :', error.message);
-    return res.status(500).send('Erreur lors du traitement du paiement.');
+    console.error("Erreur paiement:", error.response?.data || error.message);
+    res.status(500).json({ success: false, message: "Paiement échoué", error: error.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Serveur backend M-Pesa lancé sur le port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Serveur M-Pesa sandbox en cours sur le port ${port}`);
 });

@@ -1,75 +1,75 @@
+// index.js (Render backend M-Pesa)
 const express = require('express');
 const axios = require('axios');
+const bodyParser = require('body-parser');
 const app = express();
 
-app.use(express.json());
+app.use(bodyParser.json());
 
 const PORT = process.env.PORT || 3000;
 
-app.get("/", (req, res) => {
-  res.send(`
-    <html>
-      <head><title>Paiement M-Pesa</title></head>
-      <body style="text-align: center; padding-top: 50px;">
-        <h2>Cliquer pour payer avec M-Pesa</h2>
-        <form action="/pay" method="post">
-          <button type="submit" style="padding: 15px 30px; font-size: 18px;">Payer maintenant</button>
-        </form>
-      </body>
-    </html>
-  `);
-});
+const baseURL = 'https://sandbox.momodeveloper.mtn.com';
+const apiUser = 'TON_API_USER';
+const apiKey = 'TA_CLE_API_SANDBOX';
+const subscriptionKey = 'TON_SUBSCRIPTION_KEY';
+const shortcode = 'TON_SHORTCODE';
+const callbackURL = 'https://digitalschool025.systeme.io/page-de-remerciement';
 
-app.post("/pay", async (req, res) => {
+// Fonction d'authentification pour obtenir le token d'accès
+async function getAccessToken() {
+  const response = await axios.post(
+    `${baseURL}/collection/token/`,
+    {},
+    {
+      headers: {
+        'Ocp-Apim-Subscription-Key': subscriptionKey,
+        'Authorization': 'Basic ' + Buffer.from(apiUser + ':' + apiKey).toString('base64')
+      }
+    }
+  );
+  return response.data.access_token;
+}
+
+app.get('/pay', async (req, res) => {
+  const montant = req.query.amount || 0.5; // Montant par défaut en USD
+  const numeroClient = '243815911930'; // Ton numéro M-Pesa à préremplir automatiquement
+
   try {
-    // Remplace ces valeurs par celles de ton compte sandbox M-Pesa
-    const shortcode = "600100"; // Ton shortcode Sandbox
-    const consumerKey = "TA_CONSUMER_KEY";
-    const consumerSecret = "TON_CONSUMER_SECRET";
-    const partyA = "NUMERO_CLIENT"; // exemple : 254708374149
-    const callbackUrl = "https://ton-lien-systeme.io/page-de-remerciement";
-    const passkey = "TA_PASSKEY";
+    const token = await getAccessToken();
+    const referenceId = Math.floor(Math.random() * 1000000000);
 
-    const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
-
-    // Obtenir access token
-    const { data: tokenRes } = await axios.get("https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials", {
-      headers: { Authorization: `Basic ${auth}` },
-    });
-
-    const accessToken = tokenRes.access_token;
-
-    // Horodatage au format requis
-    const timestamp = new Date().toISOString().replace(/[-T:.Z]/g, "").slice(0, 14);
-
-    const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64");
-
-    // Effectuer la demande STK Push
     await axios.post(
-      "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+      `${baseURL}/collection/v1_0/requesttopay`,
       {
-        BusinessShortCode: shortcode,
-        Password: password,
-        Timestamp: timestamp,
-        TransactionType: "CustomerPayBillOnline",
-        Amount: "1",
-        PartyA: partyA,
-        PartyB: shortcode,
-        PhoneNumber: partyA,
-        CallBackURL: callbackUrl,
-        AccountReference: "PaiementTest",
-        TransactionDesc: "Paiement via Systeme.io",
+        amount: montant,
+        currency: 'USD',
+        externalId: referenceId,
+        payer: {
+          partyIdType: 'MSISDN',
+          partyId: numeroClient
+        },
+        payerMessage: 'Paiement Digital School',
+        payeeNote: 'Merci pour votre achat'
       },
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          'X-Reference-Id': referenceId,
+          'X-Target-Environment': 'sandbox',
+          'Ocp-Apim-Subscription-Key': subscriptionKey,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       }
     );
 
-    res.send("Demande de paiement envoyée. Vérifiez votre téléphone M-Pesa !");
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Erreur lors du paiement.");
+    // Redirection après paiement (simulé ici)
+    return res.redirect(callbackURL);
+  } catch (error) {
+    console.error('Erreur de paiement M-Pesa :', error.message);
+    return res.status(500).send('Erreur lors du traitement du paiement.');
   }
 });
 
-app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Serveur backend M-Pesa lancé sur le port ${PORT}`);
+});

@@ -10,7 +10,7 @@ const PORT = 3000;
 const API_KEY = '1566511865680bd456ab25f7.01839391';
 const SITE_ID = '105893277';
 const RETURN_URL_SUCCESS = 'https://digitalschool025.systeme.io/413723d5';
-const RETURN_URL_FAILED = 'https://ton-site.systeme.io/page-echec';
+const RETURN_URL_FAILED = 'https://digitalschool025.systeme.io/baae8ba1';
 
 app.get('/initier-paiement', async (req, res) => {
   try {
